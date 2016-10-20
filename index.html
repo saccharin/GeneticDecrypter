@@ -47,6 +47,7 @@
 	<script src="solution.js"></script>
 	<script src="constants.js"></script>
 	<script src="10k.js"></script>
+	<script src="scripts.js"></script>
     <script>
 		function log(obj, cls, handler, args) {
 			if(typeof obj == 'object')
@@ -72,10 +73,10 @@
 		}
 		
 		var old = [
-			'OG ZOVJ DVKNWNVM SNOY OYQ FQZO EMVUONUQZ, MQVX OYQ VWSVJZZQULMQ BQSZWQOOQMZ!',
+			//'OG ZOVJ DVKNWNVM SNOY OYQ FQZO EMVUONUQZ, MQVX OYQ VWSVJZZQULMQ BQSZWQOOQMZ!',
 			'LPK BHJQKSPDQ? NPQK KOJC UK KOJ UMEUIQPD UMEUIQQJAHGJ XPGHC!',
 			'ERJL OTC UYOCGO RJEPFDYORPJ EFPD YUIYZGGCMXFC NZ XGRJV OTC YUIYZGMPJJCMOCL DPNRUC YHH!',
-			'JVX CTJVXQLICVT VT PVR IV HXVIDMI EVFX LHHA, ADD KV/ADMFXDQEMVWD!',
+			//'JVX CTJVXQLICVT VT PVR IV HXVIDMI EVFX LHHA, ADD KV/ADMFXDQEMVWD!',
 			'TPZ K PAINJM, TJFDTZ QKPPCNIX KJX QFJ BNI ZKVG NB LNTI KVVNTJAP!',
 			'JHIIHR EWREW TE XHYG DWEC QWPWREW – TP EHIWCBTRM EWWIE EYEKTJTHYE, HQQ HG CHH MHHQ CH DW CGYW, TC TE IHEC VTFWVX UR UCCUJF!',
 		];
@@ -127,213 +128,12 @@
 				
 				solution.setLetter(
 					freq[m++].letter, 
-					frequencies[i++]);
+					frequencies[i++],
+					true); // ignore history
 			}
 			
 			solution.fill();
 			return solution;
-		}
-		
-		function initialize() {
-			$("#enter").hide();
-			$("#solve").show();
-			var code = new Code( $('#code-input').val().trim() );
-			$("#code").text(code.code);
-			
-			var abc = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-			
-			var solutions = [];
-			// create 10 parent solutions
-			for(var i=0; i<10; i++) {
-				var chance = Math.random();
-				var solution;
-				
-				if(chance > .6) {
-					solution = getFrequencyMatches(code, "letter", "Birth Schema: Letter Frequency");
-				} else if(chance > .3) {
-					solution = getFrequencyMatches(code, "firstLetter", "Birth Schema: First Letter Freqency");
-				} else {
-					solution = new Solution([], code, ["Birth Schema: Random Letters"]);
-				}
-				var j=0;
-				var found = false;
-				while(j++ < 10 && found === false) { 
-					found = solution.wordHunt();
-				};
-				solution.fill();
-				log(solution.solve());
-				solutions.push(solution);
-			}
-			return solutions;
-			
-			/*
-			var solution = new Solution([], code);
-			
-			var freq = [];
-			for(var i=0; i<abc.length; i++)
-				freq.push({ letter: abc[i], frequency: 0 });
-			
-			code.words.forEach(function(w) {
-				var f = freq.find(function(x) { return x.letter == w.word[0]; });
-				f.frequency++;
-			});
-			freq.sort(function(a,b) { return b.frequency - a.frequency; });
-			freq = freq.filter(function(x) { return x.frequency > 0; });
-			
-			//log(solution.solve());
-			
-			var m = 0, i = 0;
-			
-			while(m < freq.length && i < Constants.byWordStartFrequency.length) {
-				if(solution.matches.some(function(w) { return w.letter == Constants.byWordStartFrequency[i]; })) {
-					i++;
-					continue;
-				}
-				if(solution.matches.some(function(w) { return w.code == freq[m].letter; })) {
-					m++;
-					continue;
-				}
-				
-				solution.setLetter(
-					freq[m++].letter, 
-					Constants.byWordStartFrequency[i++]);
-			}
-			
-			//log(solution.solve());
-			
-			//log(matches);
-			
-			//var solution = new Solution(matches, code);
-			solution.fill();
-			log(solution.solve());
-			return solution;
-			*/
-		}
-		
-		function finishGeneration(statics) {
-			statics.generation++;
-			$('#continue').data('statics', statics);
-			
-			if(statics.generation <= statics.maxGeneration) {
-				var best = statics.ancestors.filter(function(x) { return x.score.score == 1; });
-				if(best.length > 0) {
-					log(best.length.toString() + " valid solutions discovered", "success");
-					best.forEach(function(x) {
-						log(x.score.decrypted, "primary", logHandler, x);
-						$('#plog').find("li").last().find('a').click();
-						log(x.history);
-						log(statics.mutations.toString() + " mutations processed");
-						//$('#solution').show().append(
-						//	$('<p></p>').text(x.score.decrypted)
-						//	);
-						status(false);
-					});
-				}
-				else
-					setTimeout(function() {
-						runGeneration(statics);
-					}, 100);
-			}
-			else {
-				$('#plog').find("a").last().click();
-				log(statics.maxGeneration.toString() + " Generations Complete", "success");
-				log(statics.mutations.toString() + " mutations processed");
-				status(false);
-				$('#solution').show().find("#solution-details").empty().append(
-					$('<p></p>').text(statics.ancestors.length.toString() + " solutions available")
-						)
-					
-					.append(
-						$('<a href="#"></a>')
-							.text('Scroll to Bottom')
-							.click(function(e) { e.preventDefault(); window.scroll(0, $(document).height()); })
-					);
-			}
-		}
-		
-		function runGeneration(statics) {
-			//log("------", "primary");
-			log("Generation: " + statics.generation.toString(), "primary");
-			
-			status("Generation: " + statics.generation.toString());
-
-			var newAncestors = [];
-			
-			setTimeout(function() {
-				runAncestors([], 0, statics);
-			}, 100);
-		}
-		
-		function finishAncestors(newAncestors, statics) {
-			newAncestors.sort(function(a,b) { return b.score.words - a.score.words; });
-			
-			if(newAncestors.length == 0)
-			{
-				log("All ancestors were less fit than their parent :(", "warning")
-				return finishGeneration(statics);
-			}
-			
-			statics.last = newAncestors[0].score;
-			newAncestors.filter(function(c) { return c.score.words >= statics.last.words - 2; });
-			if(newAncestors.length > 12)
-				newAncestors.length = 12;
-			
-			statics.ancestors = [];
-			for(var i=newAncestors.length - 1;i>=0;i--) {
-				statics.ancestors.push(newAncestors.pop(i));
-			}
-			
-			for(var i=statics.ancestors.length - 1, a1; a1=statics.ancestors[i]; i--) {
-				for(var j=i-1, a2; a2=statics.ancestors[j];j--) {
-					if(a2.equals(a1)) {
-						statics.ancestors.splice(i, 1);
-						break;
-					}
-				}
-			}
-
-			
-			//log("Winners:");
-			statics.ancestors.forEach(function(a) {
-				log(a.score, null, logHandler, a);
-			});
-			finishGeneration(statics);
-		}
-		
-		function runAncestors(newAncestors, index, statics) {
-			//log(" Ancestor " + index.toString() + ": Reproducing");
-			status("Generation " + statics.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
-			var ancestor = statics.ancestors[index];
-			var children = ancestor.reproduce(
-				15, // children
-				.5, // odds of letter replacement
-				.5, // odds of letter switch
-				statics.ancestors //mates
-				);
-			
-			children.forEach(function(c) {
-				c.solve();
-				statics.mutations++;
-			});
-			
-			children = children.filter(function(c) { return c.score.words >= statics.last.words - 2; });
-			//children.sort(function(a,b) { return b.score.words - a.score.words; });
-			
-			children.forEach(function(c) {
-				newAncestors.push(c);
-			});
-			children = null;
-			
-			index++;
-			
-			if(index == statics.ancestors.length)
-				setTimeout(function() {
-					finishAncestors(newAncestors, statics);
-				}, 100);
-			else
-				setTimeout(function() {
-					runAncestors(newAncestors, index, statics);
-				}, 100);
 		}
 		
 		function logHandler(solution, $li) {
@@ -343,13 +143,18 @@
 					//.text("Click to render solution")
 					.click(function(e) {
 						e.preventDefault();
-						populateLetters(s);
+						//populateLetters(s);
+						showSolution(s);
 						window.scroll(0, 0);
 					})
 					.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
 				);
 		}
-		
+		function showSolution(solution) {
+			$('#out').text(solution.score.decrypted).show();
+			$("#history").text(solution.history.join('\n')).show();
+		}
+		/*
 		function populateLetters(solution) {
 			$('#head, #body, #out, #history').empty();
 			for(var i=0; i<Constants.alphabet.length; i++) {
@@ -388,23 +193,109 @@
 				});
 			}
 			$('input').first().change();
-			$("#history").text(JSON.stringify(solution.history));
+			$("#history").text(solution.history.join('\n'));
 		}
-	
+		*/
 		$(document).ready(function() {
 			var cde = old[Math.floor(Math.random() * old.length)];
 			$('#code-input').val(cde);
 			$('#code').text(cde);
 
-			//log("Hello world");
+			var flow = new Flow({
+				code: null,
+				//numberOfChildren: 15,
+				//numberOfMates: 10,
+				solutions: [],
+				onCycleBegins: function(state) { 
+					log("Generation: " + state.generation.toString(), "primary");
+					
+					status("Generation: " + state.generation.toString());
+				},
+				onCycleEnds: function(state) { 
+					$('#continue').data('state', state);
+					
+				},
+				onStepBegins: function(newAncestors, index, state) { 
+								
+					status("Generation " + state.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
+				},
+				onStepEnds: function(newAncestors, state) { 
+					
+					if(newAncestors.length == 0)
+						log("All ancestors were less fit than their parent :(", "warning")
+					
+					
+				},
+				onStepEnds2: function(newAncestors, state) {
+					state.ancestors.forEach(function(a) {
+						log(a.score, null, logHandler, a);
+					});
+				},
+				onVictory: function(state, best) {
+					log(best.length.toString() + " valid solutions discovered", "success");
+					best.forEach(function(x) {
+						log(x.score.decrypted, "primary", logHandler, x);
+						$('#plog').find("li").last().find('a').click();
+						log(x.history);
+						log(state.mutations.toString() + " mutations processed");
+
+						status(false);
+					});
+				},
+				onComplete: function(state) {
+					$('#plog').find("a").last().click();
+					log(state.maxGeneration.toString() + " Generations Complete", "success");
+					log(state.mutations.toString() + " mutations processed");
+					status(false);
+					$('#solution').show().find("#solution-details").empty().append(
+						$('<p></p>').text(state.ancestors.length.toString() + " solutions available")
+							)
+						
+						.append(
+							$('<a href="#"></a>')
+								.text('Scroll to Bottom')
+								.click(function(e) { e.preventDefault(); window.scroll(0, $(document).height()); })
+						);
+
+				},
+				alphabet: Constants.alphabet,
+			});
 			
 			$("#enter").show();
 			$("#enter-button").click(function(e) {
-				var solutions = initialize();
+						
+				$("#enter").hide();
+				$("#solve").show();
+				var code = new Code( $('#code-input').val().trim() );
+				$("#code").text(code.code);
+				
+				var solutions = [];
+				// create 10 parent solutions
+				for(var i=0; i<10; i++) {
+					var chance = Math.random();
+					var solution;
+					
+					if(chance > .6) {
+						solution = getFrequencyMatches(code, "letter", "Birth Schema: Letter Frequency");
+					} else if(chance > .3) {
+						solution = getFrequencyMatches(code, "firstLetter", "Birth Schema: First Letter Freqency");
+					} else {
+						solution = new Solution([], code, ["Birth Schema: Random Letters"]);
+					}
+					var j=0;
+					var found = false;
+					while(j++ < 10 && found === false) { 
+						found = solution.wordHunt();
+					};
+					solution.fill();
+					log(solution.solve());
+					solutions.push(solution);
+				}
+				
 				solutions.sort(function(a,b) { return b.score.words - a.score.words; });
 				var last = solutions[0].score;
 
-				var statics = {
+				var state = {
 					generation: 0,
 					maxGeneration: 10,
 					ancestors: solutions,
@@ -412,13 +303,13 @@
 					mutations: 1,
 				};
 				
-				runGeneration(statics);
+				flow.beginCycle(state);
 			});
 			$("#continue").click(function(e) {
 				e.preventDefault();
-				var statics = $(this).data('statics');
-				statics.maxGeneration += 10;
-				runGeneration(statics);
+				var state = $(this).data('state');
+				state.maxGeneration += 10;
+				flow.beginCycle(state);
 			});
     	});
     </script>
@@ -428,9 +319,13 @@
     		Decryption
     	</h1>
 		
+		<p>Features that I should add:</p>
+		<ul>
+			<li>Pause button</li>
+		</ul>
+		
 		<div class="collapse" id="enter">
 			<p><strong>Enter the latest code</strong></p>
-			<p>You can get the latest code at <a href="http://team.usaa.com/sites/it/AlwaysOn/Pages/Newsletter.aspx">http://team.usaa.com/sites/it/AlwaysOn/Pages/Newsletter.aspx</a></p>
 			<textarea class="form-control" id="code-input">ERJL OTC UYOCGO RJEPFDYORPJ EFPD YUIYZGGCMXFC NZ XGRJV OTC YUIYZGMPJJCMOCL DPNRUC YHH!</textarea>
 			<div class="row">
 				<div class="col-md-4 col-md-offset-4">
@@ -444,12 +339,12 @@
 		</div>
 		<div class="collapse" id="solve">
 			<h3><code id="code"></code></h3>
-			<table>
+			<!--<table>
 				<tr id="head"></tr>
 				<tr id="body"></tr>
-			</table>
-			<h3><code id="out"></code></h3>
-			<pre id="history"></pre>
+			</table>-->
+			<h3><code id="out" class="collapse"></code></h3>
+			<pre id="history" class="collapse"></pre>
 		</div>
 		<hr />
 		<h4>Log</h4>
