@@ -126,9 +126,8 @@ Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, odd
 			child = this.mate(mates[Math.floor(Math.random() * mates.length)]);
 		else
 			child = this.clone();
-		//var child = this.clone();
 		
-		if(Math.random() < .5) {
+		if(Math.random() < .6) {
 			var i=0;
 			var found = false;
 			while(i++ < 10 && found === false) { 
@@ -146,7 +145,7 @@ Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, odd
 
 Solution.prototype.mate = function(partner)
 {
-	var solution = this.clone(); // new Solution([], this.code, this.history);
+	var solution = this.clone();
 	for(var i=0, match; match = this.matches[i]; i++) {
 		if(Math.random() > .5)
 			solution.setLetter(partner.matches[i].code, partner.matches[i].letter, true);
@@ -154,7 +153,14 @@ Solution.prototype.mate = function(partner)
 	
 	solution.fill();
 	
-	solution.history.push("Mated " + this.matches.map(function(m) { return m.code; }).join('') + " with " + partner.matches.map(function(m) { return m.code; }).join(''));
+	function getS(s) {
+		if(s.score && s.score.decrypted)
+			return s.score.decrypted;
+		
+		return s.solve().decrypted;
+	}
+	
+	solution.history.push("Mated " + this.matches.map(function(m) { return m.code; }).join('') + "(" + getS(this) + ") with " + partner.matches.map(function(m) { return m.code; }).join('') + "(" + getS(partner) + ")");
 	
 	return solution;
 };
