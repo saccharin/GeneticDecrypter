@@ -160,10 +160,14 @@ Solution.prototype.mate = function(partner)
 		return s.solve().decrypted;
 	}
 	
-	solution.history.push("Mated " + this.matches.map(function(m) { return m.code; }).join('') + "(" + getS(this) + ") with " + partner.matches.map(function(m) { return m.code; }).join('') + "(" + getS(partner) + ")");
+	solution.history.push("Mated " + this.getDna() + " (" + getS(this) + ") with " + partner.getDna() + " (" + getS(partner) + ")");
 	
 	return solution;
 };
+
+Solution.prototype.getDna = function() {
+	return this.matches.map(function(m) { return m.code; }).join('');
+}
 
 Solution.prototype.mutate = function(oddsOfLetterShift, oddsOfSwitch) {
 	// substitute an unused letter with a used one

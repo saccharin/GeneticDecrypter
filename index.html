@@ -48,6 +48,7 @@
 	<script src="constants.js"></script>
 	<script src="10k.js"></script>
 	<script src="scripts.js"></script>
+	<script src="renderer.js"></script>
     <script>
 		function log(obj, cls, handler, args) {
 			if(typeof obj == 'object')
@@ -154,51 +155,13 @@
 			$('#out').text(solution.score.decrypted).show();
 			$("#history").text(solution.history.join('\n')).show();
 		}
-		/*
-		function populateLetters(solution) {
-			$('#head, #body, #out, #history').empty();
-			for(var i=0; i<Constants.alphabet.length; i++) {
-				var a = Constants.alphabet[i];
-				$("#head").append($('<th>' + a + '</th>'));
-				
-				var match = solution.matches.find(function(x) { return x.code == a; });
-				var val = match ? match.letter : '';
-				
-				var input= $('<input type="text" class="form-control" id="input' + a + '" data-letter="' + a + '" value="' + val + '">');
-				
-				$("#body").append($('<td></td>').append(input));
-
-				input.change(function(e) {
-					var code = $('#code').text();
-					var out = '';
-	
-					if(e && e.target) {
-						var letter = $(e.target).data("letter");
-					}
-					for(var i=0; i<code.length; i++) {
-						var a = code[i];
-	
-						if(Constants.alphabet.indexOf(a.toUpperCase()) < 0)
-						{
-							out += a.toUpperCase()
-							continue;
-						}
-	
-						var x = $('#input' + a).val().toUpperCase();
-						if(x == '')
-							x = '-';
-						out += x;
-					}
-					$("#out").text(out);
-				});
-			}
-			$('input').first().change();
-			$("#history").text(solution.history.join('\n'));
-		}
-		*/
+		
 		$(document).ready(function() {
+			document.getElementById('canvas').width = $('canvas').parent().width() - 4;
+			document.getElementById('canvas').height = 300;
+			
 			var cde = old[Math.floor(Math.random() * old.length)];
-			$('#code-input').val(cde);
+			//$('#code-input').val(cde);
 			$('#code').text(cde);
 
 			var flow = new Flow({
@@ -220,7 +183,7 @@
 					status("Generation " + state.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
 				},
 				onStepEnds: function(newAncestors, state) { 
-					
+					$("#button-gen-10").show();
 					if(newAncestors.length == 0)
 						log("All ancestors were less fit than their parent :(", "warning")
 					
@@ -251,24 +214,28 @@
 						$('<p></p>').text(state.ancestors.length.toString() + " solutions available")
 							)
 						
-						.append(
+						/*.append(
 							$('<a href="#"></a>')
 								.text('Scroll to Bottom')
 								.click(function(e) { e.preventDefault(); window.scroll(0, $(document).height()); })
-						);
+						);*/
 
 				},
 				alphabet: Constants.alphabet,
 			});
 			
 			$("#enter").show();
-			$("#enter-button").click(function(e) {
-						
-				$("#enter").hide();
-				$("#solve").show();
-				var code = new Code( $('#code-input').val().trim() );
-				$("#code").text(code.code);
-				
+			
+			
+			$("#solve").show();
+			var code = new Code( $('#code').text());
+			$("#code").text(code.code);
+			
+			var canvas = document.querySelector('canvas');
+			var renderer = new Renderer(canvas);
+			
+			var state;
+			function generateSolutions() {
 				var solutions = [];
 				// create 10 parent solutions
 				for(var i=0; i<10; i++) {
@@ -294,21 +261,37 @@
 				
 				solutions.sort(function(a,b) { return b.score.words - a.score.words; });
 				var last = solutions[0].score;
-
-				var state = {
+				
+				state = {
 					generation: 0,
-					maxGeneration: 10,
+					maxGeneration: 0,
 					ancestors: solutions,
 					last: last,
 					mutations: 1,
 				};
 				
+				renderer.renderSolutions(0, solutions);
+			}
+			
+			$("#button-generate").click(function(e) {
+				$(this).hide()
+				$("#button-gen-1").show();;
+				generateSolutions();
+			});
+			$("#button-gen-1, #button-gen-10").click(function(e) {
+
+				if($(this).attr("id") == 'button-gen-10')
+					state.maxGeneration += 10;
+
+				$(this).hide();
 				flow.beginCycle(state);
 			});
+			
 			$("#continue").click(function(e) {
 				e.preventDefault();
 				var state = $(this).data('state');
 				state.maxGeneration += 10;
+				
 				flow.beginCycle(state);
 			});
     	});
@@ -316,20 +299,16 @@
 
   	<div class="container">
 	    <h1>
-    		Decryption
+    		Genetic Decryption Algorithm
     	</h1>
-		
-		<p>Features that I should add:</p>
-		<ul>
-			<li>Pause button</li>
-		</ul>
+		<h3><code id="code"></code></h3>
 		
 		<div class="collapse" id="enter">
-			<p><strong>Enter the latest code</strong></p>
-			<textarea class="form-control" id="code-input">ERJL OTC UYOCGO RJEPFDYORPJ EFPD YUIYZGGCMXFC NZ XGRJV OTC YUIYZGMPJJCMOCL DPNRUC YHH!</textarea>
 			<div class="row">
 				<div class="col-md-4 col-md-offset-4">
-					<button type="button" class="btn btn-primary btn-lg btn-block" id="enter-button">Begin Solve</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 10 Generations</button>
 				</div>
 			</div>
 		</div>
@@ -338,15 +317,16 @@
 			<p><a href="#" id="continue">Keep Solving</a></p>
 		</div>
 		<div class="collapse" id="solve">
-			<h3><code id="code"></code></h3>
-			<!--<table>
-				<tr id="head"></tr>
-				<tr id="body"></tr>
-			</table>-->
 			<h3><code id="out" class="collapse"></code></h3>
 			<pre id="history" class="collapse"></pre>
 		</div>
+	</div>
+	<div class="container-fluid">
 		<hr />
+		<canvas id="canvas"></canvas>
+		<hr />
+	</div>
+	<div class="container">
 		<h4>Log</h4>
 		<ul id="plog"></ul>
    </div>

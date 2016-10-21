@@ -45,8 +45,8 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	
 	var numberOfChildren = this.settings.numberOfChildren;
 	
-	var ancestor = state.ancestors[index];
 	state.ancestors.sort(function(a,b) { return b.score.words - a.score.words; });
+	var ancestor = state.ancestors[index];
 	
 	var ancestorSubset = [];
 	
