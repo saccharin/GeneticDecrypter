@@ -7,8 +7,10 @@
     <title>DECRYPT</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-shim.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-
+	<script src="http://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+
+	<link rel="stylesheet" href="nodes.css">
 
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
@@ -48,7 +50,9 @@
 	<script src="constants.js"></script>
 	<script src="10k.js"></script>
 	<script src="scripts.js"></script>
-	<script src="renderer.js"></script>
+	<!--<script src="renderer.js"></script>-->
+	<script src="http://d3js.org/d3.v3.min.js"></script>
+
     <script>
 		function log(obj, cls, handler, args) {
 			if(typeof obj == 'object')
@@ -157,8 +161,8 @@
 		}
 		
 		$(document).ready(function() {
-			document.getElementById('canvas').width = $('canvas').parent().width() - 4;
-			document.getElementById('canvas').height = 300;
+			//document.getElementById('canvas').width = $('canvas').parent().width() - 4;
+			//document.getElementById('canvas').height = 300;
 			
 			var cde = old[Math.floor(Math.random() * old.length)];
 			//$('#code-input').val(cde);
@@ -183,7 +187,10 @@
 					status("Generation " + state.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
 				},
 				onStepEnds: function(newAncestors, state) { 
-					$("#button-gen-10").show();
+					
+					if(state.generation == 0)
+						$("#button-gen-10").fadeIn(400, function() { });
+
 					if(newAncestors.length == 0)
 						log("All ancestors were less fit than their parent :(", "warning")
 					
@@ -204,11 +211,14 @@
 
 						status(false);
 					});
+					console.log(state);
+					//treeJSON = buildTree({}, state.solutions);
 				},
 				onComplete: function(state) {
 					$('#plog').find("a").last().click();
 					log(state.maxGeneration.toString() + " Generations Complete", "success");
 					log(state.mutations.toString() + " mutations processed");
+					console.log(state);
 					status(false);
 					$('#solution').show().find("#solution-details").empty().append(
 						$('<p></p>').text(state.ancestors.length.toString() + " solutions available")
@@ -231,8 +241,8 @@
 			var code = new Code( $('#code').text());
 			$("#code").text(code.code);
 			
-			var canvas = document.querySelector('canvas');
-			var renderer = new Renderer(canvas);
+			//var canvas = document.querySelector('canvas');
+			//var renderer = new Renderer(canvas);
 			
 			var state;
 			function generateSolutions() {
@@ -266,31 +276,34 @@
 					generation: 0,
 					maxGeneration: 0,
 					ancestors: solutions,
+					solutions: solutions,
 					last: last,
 					mutations: 1,
 				};
-				
-				renderer.renderSolutions(0, solutions);
+				console.log(state);
+				//renderer.renderSolutions(0, solutions);
 			}
 			
 			$("#button-generate").click(function(e) {
-				$(this).hide()
-				$("#button-gen-1").show();;
+				$(this).fadeOut(400, function() {
+					$("#button-gen-1").show();
+				});
+				
 				generateSolutions();
 			});
 			$("#button-gen-1, #button-gen-10").click(function(e) {
 
 				if($(this).attr("id") == 'button-gen-10')
-					state.maxGeneration += 10;
+					state.maxGeneration += 20;
 
-				$(this).hide();
+				$(this).fadeOut(400, function() { });
 				flow.beginCycle(state);
 			});
 			
 			$("#continue").click(function(e) {
 				e.preventDefault();
 				var state = $(this).data('state');
-				state.maxGeneration += 10;
+				state.maxGeneration += 20;
 				
 				flow.beginCycle(state);
 			});
@@ -308,7 +321,7 @@
 				<div class="col-md-4 col-md-offset-4">
 					<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
 					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
-					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 10 Generations</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 20 Generations</button>
 				</div>
 			</div>
 		</div>
@@ -321,11 +334,12 @@
 			<pre id="history" class="collapse"></pre>
 		</div>
 	</div>
-	<div class="container-fluid">
+	<!--<div class="container-fluid">
 		<hr />
 		<canvas id="canvas"></canvas>
 		<hr />
-	</div>
+	</div>-->
+	<div id="tree-container"></div>
 	<div class="container">
 		<h4>Log</h4>
 		<ul id="plog"></ul>
