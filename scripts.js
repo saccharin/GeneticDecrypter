@@ -18,11 +18,12 @@ var Flow = function(settings) {
 		onVictory: function(state, best) { },
 		onContinue: function(state, best) { },
 		onComplete: function(state) { },
-		mustBeatThisSpread: 2,
-		maximumNumberOfAncestors: 15,
+		mustBeatThisSpread: 3,
+		maximumPopulation: 50,
 		alphabet: Constants.alphabet,
 		numberOfMates: 10,
-		numberOfChildren: 15,
+		numberOfChildren: 200,
+		timeout: 3
 	};
 
 	this.settings = $.extend({}, DEFAULTS, settings);
@@ -37,10 +38,11 @@ Flow.prototype.beginCycle = function(state)
 	var self = this;
 	setTimeout(function() {
 		self.beginStep([], 0, state);
-	}, 100);
+	}, this.settings.timeout);
 };
 Flow.prototype.beginStep = function(newAncestors, index, state)
 {
+	var self = this;
 	this.settings.onStepBegins(newAncestors, index, state);
 	
 	var numberOfChildren = this.settings.numberOfChildren;
@@ -53,10 +55,10 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	// ~40% of the ancestors are the best performing, 
 	// the next ~30% are randomly selected, possibly duplicates
 	// the last ~30% are randomly generated
-	for(var i=0;i<numberOfChildren;i++) {
-		if(i<Math.ceil(numberOfChildren/3) && state.ancestors[i])
+	for(var i=0;i<this.settings.numberOfMates;i++) {
+		if(i<Math.ceil(this.settings.numberOfMates/3) && state.ancestors[i])
 			ancestorSubset.push(state.ancestors[i]);
-		else if (i<Math.ceil(numberOfChildren * 2/3))
+		else if (i<Math.ceil(this.settings.numberOfMates * 2/3))
 			ancestorSubset.push(state.ancestors[Math.floor(state.ancestors.length * Math.random())]);
 		else {
 			var sol = new Solution([], ancestor.code);
@@ -72,8 +74,9 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	
 	var children = ancestor.reproduce(
 		numberOfChildren, // children
-		.5, // odds of letter replacement
-		.5, // odds of letter switch
+		.8, // odds of letter replacement
+		.2, // odds of letter switch
+		1, // odds of word hunt
 		ancestorSubset //mates
 		);
 	
@@ -82,7 +85,7 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 		state.mutations++;
 	});
 	
-	children = children.filter(function(c) { return c.score.words >= state.last.words - 1; });
+	children = children.filter(function(c) { return c.score.words >= state.last.words - self.settings.mustBeatThisSpread; });
 	
 	children.forEach(function(c) {
 		newAncestors.push(c);
@@ -96,11 +99,11 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	if(index == state.ancestors.length)
 		setTimeout(function() {
 			self.endStep(newAncestors, state);
-		}, 100);
+		}, this.settings.timeout);
 	else
 		setTimeout(function() {
 			self.beginStep(newAncestors, index, state);
-		}, 100);
+		}, this.settings.timeout);
 };
 Flow.prototype.endStep = function(newAncestors, state)
 {
@@ -117,8 +120,9 @@ Flow.prototype.endStep = function(newAncestors, state)
 	state.last = newAncestors[0].score;
 	newAncestors.filter(function(c) { return c.score.words >= state.last.words - self.settings.mustBeatThisSpread; });
 	
-	if(newAncestors.length > this.settings.maximumNumberOfAncestors)
-		newAncestors.length = this.settings.maximumNumberOfAncestors;
+	if(newAncestors.length > this.settings.maximumPopulation)
+		newAncestors = newAncestors.slice(0, this.settings.maximumPopulation);
+		//newAncestors.length = this.settings.maximumPopulation;
 	
 	state.ancestors = [];
 	for(var i=newAncestors.length - 1;i>=0;i--) {
@@ -153,7 +157,7 @@ Flow.prototype.endCycle = function(state)
 			var self = this;
 			setTimeout(function() {
 				self.beginCycle(state);
-			}, 100);
+			}, this.settings.timeout);
 		}
 	}
 	else 

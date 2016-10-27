@@ -4,6 +4,7 @@ function Solution(matches, code, history) {
 	
 	this.score = null;
 	this.history = history || [];
+	this.children = [];
 };
 
 Solution.prototype.solve = function() {
@@ -44,6 +45,10 @@ Solution.prototype.setWord = function(codedWord, replacementWord) {
 		this.setLetter(codedLetters[i], replacementLetters[i], true);
 	
 	this.history.push("Set Word: " + codedWord.word + "=>" + replacementWord.word);
+};
+
+Solution.prototype.kill = function() {
+	this.history = [];
 };
 
 Solution.prototype.setLetter = function(codedLetter, replacementLetter, ignoreHistory) {
@@ -108,6 +113,13 @@ Solution.prototype.getRandomMatch = function() {
 Solution.prototype.getRandomWord = function() {
 	return Constants.tenkWords[Math.floor(Math.random()*Constants.tenkWords.length)];
 };
+Solution.prototype.getTargettedWord = function(word) {
+	var x = word.word.length;
+	if(Constants.wordBank[x])
+		return Constants.wordBank[x][Math.floor(Math.random()*Constants.wordBank[x].length)];
+
+	return null;
+};
 
 Solution.prototype.clone = function() {
 	return new Solution(
@@ -117,20 +129,24 @@ Solution.prototype.clone = function() {
 		);
 };
 
-Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, oddsOfSwitch, mates) {
+Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, oddsOfSwitch, oddsOfWordHunt, mates) {
 	var children = [];
 	
 	for(var i=0;i<numberOfChildren;i++) {
 		var child;
-		if(mates != null && mates.length > 0)
-			child = this.mate(mates[Math.floor(Math.random() * mates.length)]);
-		else
+		if(mates != null && mates.length > 0) {
+			var mate = mates[Math.floor(Math.random() * mates.length)];
+			child = this.mate(mate);
+			mate.children.push(child);
+		} else {
 			child = this.clone();
+		}
+		this.children.push(child);
 		
-		if(Math.random() < .6) {
-			var i=0;
+		if(Math.random() < oddsOfWordHunt) {
+			var j=0;
 			var found = false;
-			while(i++ < 10 && found === false) { 
+			while(j++ < 50 && found === false) { 
 				found = child.wordHunt();
 			};
 		}
@@ -139,16 +155,18 @@ Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, odd
 	
 		children.push(child);
 	}
-	
+
 	return children;
 };
 
 Solution.prototype.mate = function(partner)
 {
 	var solution = this.clone();
+
 	for(var i=0, match; match = this.matches[i]; i++) {
 		if(Math.random() > .5)
-			solution.setLetter(partner.matches[i].code, partner.matches[i].letter, true);
+			if(partner.matches[i])
+				solution.setLetter(partner.matches[i].code, partner.matches[i].letter, true);
 	}
 	
 	solution.fill();
@@ -201,17 +219,19 @@ Solution.prototype.mutate = function(oddsOfLetterShift, oddsOfSwitch) {
 };
 
 Solution.prototype.wordHunt = function() {
-	var wrd= this.getRandomWord();
+	var randomWord = this.code.words[Math.floor(Math.random() * this.code.words.length)];
+	var targettedWord = this.getTargettedWord(randomWord);
 	
-	for(var i=0, w; w=this.code.words[i];i++) {
-		if(w.equals(wrd)) {
-			this.setWord(w, wrd);
-			this.fill();
-			
-			return true;
-		}
+	if(targettedWord && targettedWord.equals(randomWord))
+	{
+		this.setWord(randomWord, targettedWord);
+		this.fill();
+		
+		return true;
 	}
+	
 	return false;
+
 };
 
 Solution.prototype.shuffle = function (a) {
