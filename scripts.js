@@ -18,12 +18,12 @@ var Flow = function(settings) {
 		onVictory: function(state, best) { },
 		onContinue: function(state, best) { },
 		onComplete: function(state) { },
-		mustBeatThisSpread: 3,
-		maximumPopulation: 50,
+		mustBeatThisSpread: 10,
+		maximumPopulation: 60,
 		alphabet: Constants.alphabet,
-		numberOfMates: 10,
-		numberOfChildren: 200,
-		timeout: 3
+		numberOfMates: 25,
+		numberOfChildren: 80,
+		timeout: 1
 	};
 
 	this.settings = $.extend({}, DEFAULTS, settings);
@@ -75,8 +75,8 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	var children = ancestor.reproduce(
 		numberOfChildren, // children
 		.8, // odds of letter replacement
-		.2, // odds of letter switch
-		1, // odds of word hunt
+		.5, // odds of letter switch
+		.3, // odds of word hunt
 		ancestorSubset //mates
 		);
 	
@@ -137,7 +137,16 @@ Flow.prototype.endStep = function(newAncestors, state)
 			}
 		}
 	}
-
+	
+	if(state.historicalScores == null)
+		state.historicalScores = [];
+	state.historicalScores.push({ 
+		generation: state.generation, 
+		highScore: state.ancestors[state.ancestors.length - 1].score.score,
+		words: state.ancestors[state.ancestors.length - 1].score.words,
+		population: state.ancestors.length,
+	});
+	
 	this.settings.onStepEnds2(newAncestors, state);
 
 	this.endCycle(state);

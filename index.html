@@ -10,8 +10,6 @@
 	<script src="http://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>
 	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
 
-	<link rel="stylesheet" href="nodes.css">
-
 	<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
 
     <!--[if lt IE 9]>
@@ -48,10 +46,11 @@
 	<script src="word.js"></script>
 	<script src="solution.js"></script>
 	<script src="constants.js"></script>
-	<script src="10k.js"></script>
+	<script src="10k_v2.js"></script>
 	<script src="scripts.js"></script>
+	<script src="jquery.canvasjs.min.js"></script>
 	<!--<script src="renderer.js"></script>-->
-	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<!--<script src="http://d3js.org/d3.v3.min.js"></script>-->
 
     <script>
 		function log(obj, cls, handler, args) {
@@ -69,6 +68,56 @@
 			if(typeof handler == 'function')
 				handler(args, li);
 		}
+		function logSolution(s) {
+			/*
+			<div>
+				<code>ASDF ASDF ASDF ASDF</code>
+				Words Found: <strong>6</strong>
+			</div>
+			
+			*/
+			var li = $('<li></li>')
+				.append($('<div class="panel"></div>')
+				.append($('<span>Words Found: </span>')
+				.append($('<strong></strong>')
+					.text(s.score.words + ' '))
+				.append($('<span></span>')
+					.text('(' + (s.score.score * 100).toFixed(0) + '%)'))	
+					
+				.append($('<pre></pre>')
+					.text(s.score.decrypted)))
+					.prepend($('<a href="#"></a>')
+						.click(function(e) {
+							e.preventDefault();
+							//populateLetters(s);
+							showSolution(s);
+							window.scroll(0, 0);
+						})
+						.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
+				))
+				
+			$("#plog").append(li);
+		}
+		function logParent(s) 
+		{
+			var li = $('<li></li>')
+				.append($('<div class="panel"></div>')
+					.append($('<h4></h4>').text(s.history[0]))
+					.append($('<pre></pre>').text(s.history.slice(1).join('\n')))
+				.append($('<span>Words Found: </span>')
+				.append($('<strong></strong>')
+					.text(s.score.words + ' '))
+				.append($('<span></span>')
+					.text('(' + (s.score.score * 100).toFixed(0) + '%)'))	
+					
+				)
+				.append($('<pre></pre>')
+					.text(s.score.decrypted)))
+				
+			$("#plog").append(li);
+		}
+		
+		
 		function status(message) {
 			if(!message || message === false || message == '')
 				return $('#status-box').hide();
@@ -76,7 +125,8 @@
 			$('#status-box').show();
 			$('#status').text(message);
 		}
-		
+		/*1
+
 		var old = [
 			//'OG ZOVJ DVKNWNVM SNOY OYQ FQZO EMVUONUQZ, MQVX OYQ VWSVJZZQULMQ BQSZWQOOQMZ!',
 			'LPK BHJQKSPDQ? NPQK KOJC UK KOJ UMEUIQPD UMEUIQQJAHGJ XPGHC!',
@@ -85,7 +135,14 @@
 			'TPZ K PAINJM, TJFDTZ QKPPCNIX KJX QFJ BNI ZKVG NB LNTI KVVNTJAP!',
 			'JHIIHR EWREW TE XHYG DWEC QWPWREW – TP EHIWCBTRM EWWIE EYEKTJTHYE, HQQ HG CHH MHHQ CH DW CGYW, TC TE IHEC VTFWVX UR UCCUJF!',
 		];
-		
+		*/
+
+		//var s = new Solution([], new Code('THIS IS A SECRET CODE PHRASE. OUR GOAL IS TO DECRYPT IT AND SHARE GENETIC ALGORITHMS WITH THE WORLD.'));
+		//var s = new Solution([], new Code('I HEARD A NASTY RUMOR THAT THE HOST OF THIS EVENT ISN\'T SMART ENOUGH TO UNDERSTAND THE MATERIAL OF THIS PRESENTATION!'));
+		var s = new Solution([], new Code('HELLO WORLD. I AM A GENETIC ALGORITHM, PROGRAMMED TO REVERSE A CIPHER. PLEASE DON\'T MAKE ME ACT IN A SKIT! I MAY BE BUILT IN JAVASCRIPT, BUT I STILL HAVE MY PRIDE.'));
+		s.fill();
+		var old = [s.solve().decrypted];
+
 		function getFrequencyMatches(code, mode, motive)
 		{
 			var solution = new Solution([], code, [motive]);
@@ -188,8 +245,8 @@
 				},
 				onStepEnds: function(newAncestors, state) { 
 					
-					if(state.generation == 0)
-						$("#button-gen-10").fadeIn(400, function() { });
+					//if(state.generation == 0 || state.generation == 11)
+					//	$("#button-gen-10").fadeIn(400, function() { });
 
 					if(newAncestors.length == 0)
 						log("All ancestors were less fit than their parent :(", "warning")
@@ -197,9 +254,15 @@
 					
 				},
 				onStepEnds2: function(newAncestors, state) {
+					for(var i=0;i<10;i++) {
+						if(state.ancestors[i])
+							logSolution(state.ancestors[i]);
+					}
+					/*
 					state.ancestors.forEach(function(a) {
-						log(a.score, null, logHandler, a);
-					});
+						logSolution(a);
+						//log(a.score, null, logHandler, a);
+					});*/
 				},
 				onVictory: function(state, best) {
 					log(best.length.toString() + " valid solutions discovered", "success");
@@ -218,12 +281,49 @@
 					$('#plog').find("a").last().click();
 					log(state.maxGeneration.toString() + " Generations Complete", "success");
 					log(state.mutations.toString() + " mutations processed");
-					console.log(state);
+					//console.log(state);
 					status(false);
-					$('#solution').show().find("#solution-details").empty().append(
+					$("#button-gen-10").fadeIn(400, function() { });
+					
+					if(state.generation > 6) {
+						$('#chartContainer').show();
+						var chart = new CanvasJS.Chart("chartContainer", {
+							title: {
+								text: "Max Score Per Generation"
+							},
+							axisX: {
+								interval: 1
+							},
+							axisY: {
+								name: "Score",
+								maximum: 1,
+								valueFormatString: '#.#%'
+							},
+							toolTip: {
+								shared: true
+							},
+							legend: {
+							},
+							data: [{
+								type: "line",
+								name: "Best Score",
+								showInLegend: true,
+								xValueFormatString: "Generation ###",
+								yValueFormatString: '#.#%',
+								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.highScore };})
+							}, {
+								type: "line",
+								name: "Words",
+								showInLegend: flase,
+								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.words };})
+							}]
+						});
+						chart.render();
+					}
+					/*$('#solution').show().find("#solution-details").empty().append(
 						$('<p></p>').text(state.ancestors.length.toString() + " solutions available")
 							)
-						
+						*/
 						/*.append(
 							$('<a href="#"></a>')
 								.text('Scroll to Bottom')
@@ -247,26 +347,48 @@
 			var state;
 			function generateSolutions() {
 				var solutions = [];
-				// create 10 parent solutions
-				for(var i=0; i<10; i++) {
+				// create 100 parent solutions
+				for(var i=0; i<100; i++) {
 					var chance = Math.random();
 					var solution;
 					
-					if(chance > .6) {
+					if(chance > .8) {
 						solution = getFrequencyMatches(code, "letter", "Birth Schema: Letter Frequency");
-					} else if(chance > .3) {
+						for(var j=0;j<3;j++)
+							solution.mutate(.5, .5);
+					} else if(chance > .6) {
 						solution = getFrequencyMatches(code, "firstLetter", "Birth Schema: First Letter Freqency");
+						for(var j=0;j<3;j++)
+							solution.mutate(.5, .5);
 					} else {
-						solution = new Solution([], code, ["Birth Schema: Random Letters"]);
+						solution = new Solution([], code, ["Birth Schema: Random Letters plus Word Hunt"]);
+						var j=0;
+						var found = 0;
+						while(j++ < 50 && found < 5) { 
+							found += solution.wordHunt();
+						};
 					}
-					var j=0;
-					var found = false;
-					while(j++ < 10 && found === false) { 
-						found = solution.wordHunt();
-					};
+
 					solution.fill();
-					log(solution.solve());
+					solution.solve();
+					//log(solution.solve());
+					//logSolution(solution);
+					
 					solutions.push(solution);
+				}
+				
+			
+				log(solutions.length.toString() + ' parents created');
+				var found = [], i=0, solution=null;
+				while((solution = solutions[i]) && found.length < 3)
+				{
+					i++;
+					
+					if(found.indexOf(solution.history[0]) >= 0)
+						continue;
+					
+					found.push(solution.history[0])
+					logParent(solution);
 				}
 				
 				solutions.sort(function(a,b) { return b.score.words - a.score.words; });
@@ -294,7 +416,7 @@
 			$("#button-gen-1, #button-gen-10").click(function(e) {
 
 				if($(this).attr("id") == 'button-gen-10')
-					state.maxGeneration += 20;
+					state.maxGeneration += 10;
 
 				$(this).fadeOut(400, function() { });
 				flow.beginCycle(state);
@@ -303,7 +425,7 @@
 			$("#continue").click(function(e) {
 				e.preventDefault();
 				var state = $(this).data('state');
-				state.maxGeneration += 20;
+				state.maxGeneration += 10;
 				
 				flow.beginCycle(state);
 			});
@@ -321,7 +443,7 @@
 				<div class="col-md-4 col-md-offset-4">
 					<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
 					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
-					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 20 Generations</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 10 Generations</button>
 				</div>
 			</div>
 		</div>
@@ -331,6 +453,7 @@
 		</div>
 		<div class="collapse" id="solve">
 			<h3><code id="out" class="collapse"></code></h3>
+			<div id="chartContainer" style="height: 200px; width: 100%;" class="collapse"></div>
 			<pre id="history" class="collapse"></pre>
 		</div>
 	</div>
