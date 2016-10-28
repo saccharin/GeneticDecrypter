@@ -5,6 +5,8 @@ function Solution(matches, code, history) {
 	this.score = null;
 	this.history = history || [];
 	this.children = [];
+	
+	this.distinctWordCount = 0;
 };
 
 Solution.prototype.solve = function() {
@@ -31,7 +33,7 @@ Solution.prototype.solve = function() {
 	
 	this.score = {
 		decrypted: o,
-		score: s / this.code.words.length,
+		score: s / this.code.uniqueCount,
 		words: s
 	};
 	return this.score;
@@ -71,11 +73,19 @@ Solution.prototype.calculateScore = function(decrypted) {
 		.map(function(x) { return x.trim(); })
 		.filter(function(x) { return x.length > 0; });
 	
+	var found = [];
 	words.forEach(function(w) {
 		w = w.split('').filter(function(x) { return Constants.alphabet.indexOf(x) >= 0; }).join('');
 		//log(w);
-		if(Constants.tenk.indexOf(w) >= 0)
+		if(found.indexOf(w) >= 0)
+			return;
+		
+		var l = w.length.toString() + '_word';
+		if(Constants.wordBank[l] && Constants.wordBank[l].indexOf(w) >= 0)
+		{
+			found.push(w);
 			score += 1;
+		}
 	});
 	
 	return score;
@@ -146,8 +156,8 @@ Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, odd
 		if(Math.random() < oddsOfWordHunt) {
 			var j=0;
 			var found = false;
-			while(j++ < 50 && found === false) { 
-				found = child.wordHunt();
+			while(j++ < 50 && found< 5) { 
+				found += child.wordHunt();
 			};
 		}
 		else
@@ -246,27 +256,4 @@ Solution.prototype.shuffle = function (a) {
 
 Solution.prototype.equals = function(other) {
 	return this.score.decrypted == other.score.decrypted;
-	/*
-	// http://stackoverflow.com/a/16436975/1451957
-	if (this.matches === other.matches) return true;
-	if (this.matches == null || other.matches == null) return false;
-	if (this.matches.length != other.matches.length) return false;
-	
-	var self= this;
-	
-	var am = JSON.parse(JSON.stringify(this.matches));
-	am.filter(function(a) { return self.code.letters.indexOf(a) >= 0; });
-	am.sort(function(a,b) { return a.letter - b.letter; });
-	
-	var om = JSON.parse(JSON.stringify(other.matches));
-	om.filter(function(a) { return self.code.letters.indexOf(a) >= 0; });
-	om.sort(function(a,b) { return a.letter - b.letter; });
-	
-	for (var i = 0; i < am.length; ++i) {
-		if (am[i].code !== om[i].code
-			|| am[i].letter !== om[i].letter
-		) return false;
-	}
-	return true;
-	*/
 };

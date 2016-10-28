@@ -1,5 +1,6 @@
 function Code(code) {
 	this.code = code;
+	this.uniqueCount = 0;
 	this.words = this.extractWords();
 	this.letters = this.extractUniqueLetters();
 };
@@ -7,6 +8,8 @@ function Code(code) {
 Code.prototype.extractWords = function() {
 	var fragments = this.code.split(' ');
 	var wrds = [];
+	var unique = [];
+	
 	fragments.forEach(function(f) {
 		f = f.trim().toUpperCase();
 		f = f.replace(/[^A-Z]/g, '');
@@ -14,7 +17,12 @@ Code.prototype.extractWords = function() {
 			return;
 		
 		wrds.push(new Word(f));
+		
+		if(unique.indexOf(f) < 0)
+			unique.push(f);
 	});
+	
+	this.uniqueCount = unique.length;
 	
 	return wrds;
 };

@@ -1915,8 +1915,12 @@ Constants.tenkWords = Constants.tenk.map(function(w) { return new Word(w); });
 
 Constants.wordBank = {};
 Constants.tenkWords.forEach(function(w) {
-	if(!Constants.wordBank[w.word.length])
+	var key = w.word.length.toString() + '_word';
+	if(!Constants.wordBank[w.word.length]) {
 		Constants.wordBank[w.word.length] = [];
-	
+		Constants.wordBank[key] = [];
+	}
+
 	Constants.wordBank[w.word.length].push(w);
+	Constants.wordBank[key].push(w.word);
 });
