@@ -76,6 +76,7 @@ Solution.prototype.calculateScore = function(decrypted) {
 	var found = [];
 	words.forEach(function(w) {
 		w = w.split('').filter(function(x) { return Constants.alphabet.indexOf(x) >= 0; }).join('');
+		
 		if(found.indexOf(w) >= 0)
 			return;
 		

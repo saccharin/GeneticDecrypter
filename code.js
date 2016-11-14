@@ -19,10 +19,11 @@ Code.prototype.extractWords = function() {
 			return;
 		
 		wrds.push(new Word(f));
-		self.letterCount += f.length;
 		
-		if(unique.indexOf(f) < 0)
+		if(unique.indexOf(f) < 0) {
 			unique.push(f);
+			self.letterCount += f.length;
+		}
 	});
 	
 	this.uniqueCount = unique.length;
