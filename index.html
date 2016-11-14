@@ -63,19 +63,11 @@
 					.text(obj));
 			
 			$("#plog").append(li);
-						
-			//window.scrollTo(0,document.body.scrollHeight);
+			
 			if(typeof handler == 'function')
 				handler(args, li);
 		}
 		function logSolution(s) {
-			/*
-			<div>
-				<code>ASDF ASDF ASDF ASDF</code>
-				Words Found: <strong>6</strong>
-			</div>
-			
-			*/
 			var li = $('<li></li>')
 				.append($('<div class="panel"></div>')
 				.append($('<span>Words Found: </span>')
@@ -89,9 +81,7 @@
 					.prepend($('<a href="#"></a>')
 						.click(function(e) {
 							e.preventDefault();
-							//populateLetters(s);
 							showSolution(s);
-							window.scroll(0, 0);
 						})
 						.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
 				))
@@ -125,20 +115,7 @@
 			$('#status-box').show();
 			$('#status').text(message);
 		}
-		/*1
-
-		var old = [
-			//'OG ZOVJ DVKNWNVM SNOY OYQ FQZO EMVUONUQZ, MQVX OYQ VWSVJZZQULMQ BQSZWQOOQMZ!',
-			'LPK BHJQKSPDQ? NPQK KOJC UK KOJ UMEUIQPD UMEUIQQJAHGJ XPGHC!',
-			'ERJL OTC UYOCGO RJEPFDYORPJ EFPD YUIYZGGCMXFC NZ XGRJV OTC YUIYZGMPJJCMOCL DPNRUC YHH!',
-			//'JVX CTJVXQLICVT VT PVR IV HXVIDMI EVFX LHHA, ADD KV/ADMFXDQEMVWD!',
-			'TPZ K PAINJM, TJFDTZ QKPPCNIX KJX QFJ BNI ZKVG NB LNTI KVVNTJAP!',
-			'JHIIHR EWREW TE XHYG DWEC QWPWREW – TP EHIWCBTRM EWWIE EYEKTJTHYE, HQQ HG CHH MHHQ CH DW CGYW, TC TE IHEC VTFWVX UR UCCUJF!',
-		];
-		*/
-
-		//var s = new Solution([], new Code('THIS IS A SECRET CODE PHRASE. OUR GOAL IS TO DECRYPT IT AND SHARE GENETIC ALGORITHMS WITH THE WORLD.'));
-		//var s = new Solution([], new Code('I HEARD A NASTY RUMOR THAT THE HOST OF THIS EVENT ISN\'T SMART ENOUGH TO UNDERSTAND THE MATERIAL OF THIS PRESENTATION!'));
+		
 		var s = new Solution([], new Code('HELLO WORLD. I AM A GENETIC ALGORITHM, PROGRAMMED TO REVERSE A CIPHER. PLEASE DON\'T MAKE ME ACT IN A SKIT! I MAY BE BUILT IN JAVASCRIPT, BUT I STILL HAVE MY PRIDE.'));
 		s.fill();
 		var old = [s.solve().decrypted];
@@ -174,7 +151,6 @@
 	
 			freq.sort(function(a,b) { return b.frequency - a.frequency; });
 			freq = freq.filter(function(x) { return x.frequency > 0; });
-			//log(solution.solve());
 			
 			var m = 0, i = 0;
 			
@@ -202,10 +178,8 @@
 			var s = JSON.parse(JSON.stringify(solution));
 			$li.find('pre').prepend(
 				$('<a href="#"></a>')
-					//.text("Click to render solution")
 					.click(function(e) {
 						e.preventDefault();
-						//populateLetters(s);
 						showSolution(s);
 						window.scroll(0, 0);
 					})
@@ -214,21 +188,18 @@
 		}
 		function showSolution(solution) {
 			$('#out').text(solution.score.decrypted).show();
+			$('#title').show();
 			$("#history").text(solution.history.join('\n')).show();
 		}
 		
 		$(document).ready(function() {
-			//document.getElementById('canvas').width = $('canvas').parent().width() - 4;
-			//document.getElementById('canvas').height = 300;
 			
 			var cde = old[Math.floor(Math.random() * old.length)];
-			//$('#code-input').val(cde);
+			
 			$('#code').text(cde);
 
 			var flow = new Flow({
 				code: null,
-				//numberOfChildren: 15,
-				//numberOfMates: 10,
 				solutions: [],
 				onCycleBegins: function(state) { 
 					log("Generation: " + state.generation.toString(), "primary");
@@ -237,55 +208,15 @@
 				},
 				onCycleEnds: function(state) { 
 					$('#continue').data('state', state);
+					$('#stats').show();
+					$('#stats-generations').text(state.generation.toString());
+					$('#stats-children').text(state.mutations.toString());
+					$('#stats-score').text(state.last.words + ' / ' + state.solutions[0].code.uniqueCount);
 					
-				},
-				onStepBegins: function(newAncestors, index, state) { 
-								
-					status("Generation " + state.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
-				},
-				onStepEnds: function(newAncestors, state) { 
-					
-					//if(state.generation == 0 || state.generation == 11)
-					//	$("#button-gen-10").fadeIn(400, function() { });
-
-					if(newAncestors.length == 0)
-						log("All ancestors were less fit than their parent :(", "warning")
-					
-					
-				},
-				onStepEnds2: function(newAncestors, state) {
-					for(var i=0;i<10;i++) {
-						if(state.ancestors[i])
-							logSolution(state.ancestors[i]);
-					}
-					/*
-					state.ancestors.forEach(function(a) {
-						logSolution(a);
-						//log(a.score, null, logHandler, a);
-					});*/
-				},
-				onVictory: function(state, best) {
-					log(best.length.toString() + " valid solutions discovered", "success");
-					best.forEach(function(x) {
-						log(x.score.decrypted, "primary", logHandler, x);
-						$('#plog').find("li").last().find('a').click();
-						log(x.history);
-						log(state.mutations.toString() + " mutations processed");
-
-						status(false);
-					});
-					console.log(state);
-					//treeJSON = buildTree({}, state.solutions);
-				},
-				onComplete: function(state) {
+					$('#stats-letters').text(state.last.letters + ' / ' + state.solutions[0].code.letterCount);
 					$('#plog').find("a").last().click();
-					log(state.maxGeneration.toString() + " Generations Complete", "success");
-					log(state.mutations.toString() + " mutations processed");
-					//console.log(state);
-					status(false);
-					$("#button-gen-10").fadeIn(400, function() { });
-					
-					if(state.generation > 6) {
+
+					if(state.generation > 1) {
 						$('#chartContainer').show();
 						var chart = new CanvasJS.Chart("chartContainer", {
 							title: {
@@ -310,26 +241,52 @@
 								showInLegend: true,
 								xValueFormatString: "Generation ###",
 								yValueFormatString: '#.#%',
-								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.highScore };})
+								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.score.letters / state.solutions[0].code.letterCount };})
 							}, {
 								type: "line",
 								name: "Words",
 								showInLegend: false,
 								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.words };})
+							}, {
+								type: "line",
+								name: "Letters",
+								showInLegend: false,
+								dataPoints: state.historicalScores.map(function(s) { return { x: s.generation, y: s.score.letters };})
 							}]
 						});
 						chart.render();
 					}
-					/*$('#solution').show().find("#solution-details").empty().append(
-						$('<p></p>').text(state.ancestors.length.toString() + " solutions available")
-							)
-						*/
-						/*.append(
-							$('<a href="#"></a>')
-								.text('Scroll to Bottom')
-								.click(function(e) { e.preventDefault(); window.scroll(0, $(document).height()); })
-						);*/
+				},
+				onStepBegins: function(newAncestors, index, state) { 
+					status("Generation " + state.generation.toString() + ", Ancestor " + index.toString() + ": Reproducing");
+				},
+				onStepEnds: function(newAncestors, state) { 
+					if(newAncestors.length == 0)
+						log("All ancestors were less fit than their parent :(", "warning")
+				},
+				onStepEnds2: function(newAncestors, state) {
+					for(var i=0;i<10;i++) {
+						if(state.ancestors[i])
+							logSolution(state.ancestors[i]);
+					}
+				},
+				onVictory: function(state, best) {
+					log(best.length.toString() + " valid solutions discovered", "success");
+					best.forEach(function(x) {
+						log(x.score.decrypted, "primary", logHandler, x);
+						$('#plog').find("li").last().find('a').click();
+						log(x.history);
+						log(state.mutations.toString() + " mutations processed");
 
+						status(false);
+					});
+				},
+				onComplete: function(state) {
+					$('#plog').find("a").last().click();
+					log(state.maxGeneration.toString() + " Generations Complete", "success");
+					log(state.mutations.toString() + " mutations processed");
+					status(false);
+					$("#button-gen-15").fadeIn(400, function() { });
 				},
 				alphabet: Constants.alphabet,
 			});
@@ -341,25 +298,22 @@
 			var code = new Code( $('#code').text());
 			$("#code").text(code.code);
 			
-			//var canvas = document.querySelector('canvas');
-			//var renderer = new Renderer(canvas);
-			
 			var state;
 			function generateSolutions() {
 				var solutions = [];
-				// create 100 parent solutions
-				for(var i=0; i<100; i++) {
+				// create 200 parent solutions
+				for(var i=0; i<200; i++) {
 					var chance = Math.random();
 					var solution;
 					
 					if(chance > .8) {
 						solution = getFrequencyMatches(code, "letter", "Birth Schema: Letter Frequency");
 						for(var j=0;j<3;j++)
-							solution.mutate(.5, .5);
+							solution.mutate(.7);
 					} else if(chance > .6) {
 						solution = getFrequencyMatches(code, "firstLetter", "Birth Schema: First Letter Freqency");
 						for(var j=0;j<3;j++)
-							solution.mutate(.5, .5);
+							solution.mutate(.7);
 					} else {
 						solution = new Solution([], code, ["Birth Schema: Random Letters plus Word Hunt"]);
 						var j=0;
@@ -371,8 +325,6 @@
 
 					solution.fill();
 					solution.solve();
-					//log(solution.solve());
-					//logSolution(solution);
 					
 					solutions.push(solution);
 				}
@@ -402,8 +354,7 @@
 					last: last,
 					mutations: 1,
 				};
-				console.log(state);
-				//renderer.renderSolutions(0, solutions);
+				//console.log(state);
 			}
 			
 			$("#button-generate").click(function(e) {
@@ -413,10 +364,10 @@
 				
 				generateSolutions();
 			});
-			$("#button-gen-1, #button-gen-10").click(function(e) {
+			$("#button-gen-1, #button-gen-15").click(function(e) {
 
-				if($(this).attr("id") == 'button-gen-10')
-					state.maxGeneration += 10;
+				if($(this).attr("id") == 'button-gen-15')
+					state.maxGeneration += 15;
 
 				$(this).fadeOut(400, function() { });
 				flow.beginCycle(state);
@@ -425,7 +376,7 @@
 			$("#continue").click(function(e) {
 				e.preventDefault();
 				var state = $(this).data('state');
-				state.maxGeneration += 10;
+				state.maxGeneration += 15;
 				
 				flow.beginCycle(state);
 			});
@@ -443,7 +394,7 @@
 				<div class="col-md-4 col-md-offset-4">
 					<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
 					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
-					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-10">Run 10 Generations</button>
+					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-15">Run 15 Generations</button>
 				</div>
 			</div>
 		</div>
@@ -451,17 +402,27 @@
 			<div id="solution-details"></div>
 			<p><a href="#" id="continue">Keep Solving</a></p>
 		</div>
+			<h4 id="title" class="collapse">Best Translation</h4>
 		<div class="collapse" id="solve">
+			<table class="table collapse" id="stats">
+				<tr>
+					<th>Total Number of Generations</th>
+					<th>Total Number of Children</th>
+					<th>Number of Solved Words</th>
+					<th>Number of Solved Letters</th>
+				</tr>
+				<tr>
+					<td id="stats-generations"></td>
+					<td id="stats-children"></td>
+					<td id="stats-score"></td>
+					<td id="stats-letters"></td>
+				</tr>
+			</table>
 			<h3><code id="out" class="collapse"></code></h3>
 			<div id="chartContainer" style="height: 200px; width: 100%;" class="collapse"></div>
 			<pre id="history" class="collapse"></pre>
 		</div>
 	</div>
-	<!--<div class="container-fluid">
-		<hr />
-		<canvas id="canvas"></canvas>
-		<hr />
-	</div>-->
 	<div id="tree-container"></div>
 	<div class="container">
 		<h4>Log</h4>

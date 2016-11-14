@@ -20,9 +20,10 @@ var Flow = function(settings) {
 		onComplete: function(state) { },
 		mustBeatThisSpread: 10,
 		maximumPopulation: 60,
+		percentOfChildrenThatBypassSelection: .12,
 		alphabet: Constants.alphabet,
-		numberOfMates: 25,
-		numberOfChildren: 80,
+		numberOfMates: 50,
+		numberOfChildren: 100,
 		timeout: 1
 	};
 
@@ -52,15 +53,13 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	
 	var ancestorSubset = [];
 	
-	// ~40% of the ancestors are the best performing, 
-	// the next ~30% are randomly selected, possibly duplicates
-	// the last ~30% are randomly generated
+	// ~15% of the ancestors are the best performing, 
+	// the next ~20% are randomly generated
+	// the last % are randomly selected, possibly duplicates
 	for(var i=0;i<this.settings.numberOfMates;i++) {
-		if(i<Math.ceil(this.settings.numberOfMates/3) && state.ancestors[i])
+		if(i<Math.ceil(this.settings.numberOfMates/5) && state.ancestors[i])
 			ancestorSubset.push(state.ancestors[i]);
-		else if (i<Math.ceil(this.settings.numberOfMates * 2/3))
-			ancestorSubset.push(state.ancestors[Math.floor(state.ancestors.length * Math.random())]);
-		else {
+		else if (i<Math.ceil(this.settings.numberOfMates+ .2)) {
 			var sol = new Solution([], ancestor.code);
 			var j=0;
 			var found = 0;
@@ -69,14 +68,16 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 			};
 			sol.fill();
 			ancestorSubset.push(sol);
+		}else {
+			ancestorSubset.push(state.ancestors[Math.floor(state.ancestors.length * Math.random())]);
 		}
 	}
 	
 	var children = ancestor.reproduce(
 		numberOfChildren, // children
-		.8, // odds of letter replacement
-		.5, // odds of letter switch
-		.3, // odds of word hunt
+		//.7, // odds of letter exchange
+		.8, // odds of random letter substitution
+		.4, // odds of word hunt
 		ancestorSubset //mates
 		);
 	
@@ -110,25 +111,29 @@ Flow.prototype.endStep = function(newAncestors, state)
 	var self = this;
 	this.settings.onStepEnds(newAncestors, state);
 	
-	newAncestors.sort(function(a,b) { return b.score.words - a.score.words; });
-	
 	if(newAncestors.length == 0)
 	{
 		return this.endCycle(state);
 	}
 	
-	state.last = newAncestors[0].score;
 	newAncestors.filter(function(c) { return c.score.words >= state.last.words - self.settings.mustBeatThisSpread; });
 	
-	if(newAncestors.length > this.settings.maximumPopulation)
-		newAncestors = newAncestors.slice(0, this.settings.maximumPopulation);
-		//newAncestors.length = this.settings.maximumPopulation;
+	// the top 1/4 of the group gets a spot
+	newAncestors.sort(function(a,b) { return b.score.letters - a.score.letters; });
 	
-	state.ancestors = [];
-	for(var i=newAncestors.length - 1;i>=0;i--) {
-		state.ancestors.push(newAncestors.pop(i));
+	state.ancestors = newAncestors.splice(0, Math.ceil(self.settings.maximumPopulation  * self.settings.percentOfChildrenThatBypassSelection));
+	
+	// the remaining 3/4 is chosen at random with a bias towards better performing children
+	while(state.ancestors.length < self.settings.maximumPopulation && newAncestors.length > 0)
+	{
+		var x = Math.floor(Math.random() * newAncestors.length);
+		
+		if(Math.random() < newAncestors[x].score.score)
+			state.ancestors.push(newAncestors.splice(x, 1)[0]);
 	}
 	
+	// remove duplicates
+	/*
 	for(var i=state.ancestors.length - 1, a1; a1=state.ancestors[i]; i--) {
 		for(var j=i-1, a2; a2=state.ancestors[j];j--) {
 			if(a2.equals(a1)) {
@@ -137,14 +142,21 @@ Flow.prototype.endStep = function(newAncestors, state)
 			}
 		}
 	}
+	*/
 	
+	//console.log(state.ancestors);
 	if(state.historicalScores == null)
 		state.historicalScores = [];
+	
+	state.ancestors.sort(function(a,b) { return b.score.letters - a.score.letters; });
+	state.last = state.ancestors[0].score;
+	
 	state.historicalScores.push({ 
 		generation: state.generation, 
-		highScore: state.ancestors[state.ancestors.length - 1].score.score,
-		words: state.ancestors[state.ancestors.length - 1].score.words,
+		highScore: state.ancestors[0].score.score,
+		words: state.ancestors[0].score.words,
 		population: state.ancestors.length,
+		score: state.ancestors[0].score
 	});
 	
 	this.settings.onStepEnds2(newAncestors, state);

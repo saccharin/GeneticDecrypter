@@ -29,13 +29,8 @@ Solution.prototype.solve = function() {
 		out.push(f.letter);
 	}
 	var o = out.join('');
-	var s = this.calculateScore(o);
-	
-	this.score = {
-		decrypted: o,
-		score: s / this.code.uniqueCount,
-		words: s
-	};
+	this.score = this.calculateScore(o);
+
 	return this.score;
 };
 
@@ -67,16 +62,20 @@ Solution.prototype.setLetter = function(codedLetter, replacementLetter, ignoreHi
 };
 
 Solution.prototype.calculateScore = function(decrypted) {
-	var score = 0;
+	var score = {
+		decrypted: decrypted,
+		score: 0,
+		words: 0,
+		letters: 0
+	};
 	
 	var words = decrypted.split(' ')
 		.map(function(x) { return x.trim(); })
-		.filter(function(x) { return x.length > 0; });
+		//.filter(function(x) { return x.length > 1; });
 	
 	var found = [];
 	words.forEach(function(w) {
 		w = w.split('').filter(function(x) { return Constants.alphabet.indexOf(x) >= 0; }).join('');
-		//log(w);
 		if(found.indexOf(w) >= 0)
 			return;
 		
@@ -84,10 +83,12 @@ Solution.prototype.calculateScore = function(decrypted) {
 		if(Constants.wordBank[l] && Constants.wordBank[l].indexOf(w) >= 0)
 		{
 			found.push(w);
-			score += 1;
+			score.words += 1;
+			score.letters += w.length;
 		}
 	});
 	
+	score.score = score.words / this.code.uniqueCount;
 	return score;
 };
 
@@ -95,10 +96,8 @@ Solution.prototype.fill = function() {
 
 	var abc = this.getUnusedLetters();
 	this.shuffle(abc);
-	//log(abc);
 	
 	var codes = this.getUnusedCodes()
-	//log(codes);
 	
 	for(var i=0, c; c = codes[i]; i++) {
 		this.matches.push({
@@ -139,7 +138,8 @@ Solution.prototype.clone = function() {
 		);
 };
 
-Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, oddsOfSwitch, oddsOfWordHunt, mates) {
+Solution.prototype.reproduce = function(numberOfChildren, //oddsOfLetterShift, 
+	oddsOfRandomLetter, oddsOfWordHunt, mates) {
 	var children = [];
 	
 	for(var i=0;i<numberOfChildren;i++) {
@@ -151,17 +151,15 @@ Solution.prototype.reproduce = function(numberOfChildren, oddsOfLetterShift, odd
 		} else {
 			child = this.clone();
 		}
+		
 		this.children.push(child);
 		
-		if(Math.random() < oddsOfWordHunt) {
-			var j=0;
-			var found = false;
-			while(j++ < 50 && found< 5) { 
-				found += child.wordHunt();
-			};
+		var found = false;
+		while(Math.random() < oddsOfWordHunt) {
+			found += child.wordHunt();
 		}
-		else
-			child.mutate(oddsOfLetterShift, oddsOfSwitch);
+		
+		child.mutate(oddsOfRandomLetter);
 	
 		children.push(child);
 	}
@@ -197,51 +195,34 @@ Solution.prototype.getDna = function() {
 	return this.matches.map(function(m) { return m.code; }).join('');
 }
 
-Solution.prototype.mutate = function(oddsOfLetterShift, oddsOfSwitch) {
-	// substitute an unused letter with a used one
-	if(Math.random() <= oddsOfLetterShift) {
+Solution.prototype.mutate = function(oddsOfRandomLetter) {
+	while(Math.random() <= oddsOfRandomLetter) {
 		var abc = this.getUnusedLetters();
 		this.shuffle(abc);
 		var match = this.getRandomMatch();
 		
 		this.history.push("Set Letter: " + match.letter + "=>" + abc[0]);
-		//log(match.letter + ' => ' + abc[0]);
 		match.letter = abc[0];
-	}
-	
-	// switch 
-	if(Math.random() <= oddsOfSwitch) {
-		var m1 = this.getRandomMatch();
-		var m2;
-		
-		while(m2 == null || m2 == m1)
-			m2 = this.getRandomMatch();
-		
-		//log(m1.letter + ' <=> ' + m2.letter);
-		
-		var a1 = m1.letter;
-		m1.letter = m2.letter;
-		m2.letter = a1;
-		
-		this.history.push("Set Letter: " + m1.code + "=>" + m1.letter);
-		this.history.push("Set Letter: " + m2.code + "=>" + m2.letter);
 	}
 };
 
 Solution.prototype.wordHunt = function() {
 	var randomWord = this.code.words[Math.floor(Math.random() * this.code.words.length)];
-	var targettedWord = this.getTargettedWord(randomWord);
 	
-	if(targettedWord && targettedWord.equals(randomWord))
-	{
-		this.setWord(randomWord, targettedWord);
-		this.fill();
+	var found = false;
+	var iteration = 0;
+	while(iteration++ < 3) {
+		var targettedWord = this.getTargettedWord(randomWord);
 		
-		return true;
+		if(targettedWord && targettedWord.equals(randomWord))
+		{
+			this.setWord(randomWord, targettedWord);
+			this.fill();
+			
+			return true;
+		}
 	}
-	
 	return false;
-
 };
 
 Solution.prototype.shuffle = function (a) {
