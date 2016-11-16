@@ -4,6 +4,8 @@ Constants.limit = 8000;
 
 Constants.tenk = ['usaa',
 'alwayson',
+'sait',
+'cannot',
 'alwaysseccure',
 'app',
 'cipher',
