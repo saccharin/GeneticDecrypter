@@ -1,6 +1,6 @@
-//flow.js
+//controller.js
 
-var Flow = function(settings) {
+var Controller = function(settings) {
 	var DEFAULTS = {
 		code: null,
 		solutions: [],
@@ -25,7 +25,7 @@ var Flow = function(settings) {
 	this.settings = $.extend({}, DEFAULTS, settings);
 };
 
-Flow.prototype.beginCycle = function(state)
+Controller.prototype.beginCycle = function(state)
 {
 	this.settings.onCycleBegins(state);
 	
@@ -36,7 +36,7 @@ Flow.prototype.beginCycle = function(state)
 		self.beginStep([], 0, state);
 	}, this.settings.timeout);
 };
-Flow.prototype.beginStep = function(newAncestors, index, state)
+Controller.prototype.beginStep = function(newAncestors, index, state)
 {
 	var self = this;
 	this.settings.onStepBegins(newAncestors, index, state);
@@ -105,7 +105,7 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 			self.beginStep(newAncestors, index, state);
 		}, this.settings.timeout);
 };
-Flow.prototype.endStep = function(newAncestors, state)
+Controller.prototype.endStep = function(newAncestors, state)
 {
 	var self = this;
 	this.settings.onStepEnds(newAncestors, state);
@@ -154,15 +154,14 @@ Flow.prototype.endStep = function(newAncestors, state)
 	delete newAncestors;
 };
 
-Flow.prototype.endCycle = function(state)
+Controller.prototype.endCycle = function(state)
 {
 	state.generation++;
 	this.settings.onCycleEnds(state);
 
 	if(state.generation <= state.maxGeneration) {
-		var best = state.ancestors.filter(function(x) { return x.score.score == 1; });
-		if(best.length > 0) {
-			this.settings.onVictory(state, best);
+		if(state.best.score.score == 1) {
+			this.settings.onVictory(state);
 		}
 		else {
 			var self = this;

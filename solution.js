@@ -67,24 +67,23 @@ Solution.prototype.calculateScore = function(decrypted) {
 		decrypted: decrypted,
 		score: 0,
 		words: 0,
-		letters: 0
+		letters: 0,
+		found: []
 	};
 	
 	var words = decrypted.split(' ')
-		.map(function(x) { return x.trim(); })
-		//.filter(function(x) { return x.length > 1; });
+		.map(function(x) { return x.trim(); });
 	
-	var found = [];
 	words.forEach(function(w) {
 		w = w.split('').filter(function(x) { return Constants.alphabet.indexOf(x) >= 0; }).join('');
 		
-		if(found.indexOf(w) >= 0)
+		if(score.found.indexOf(w) >= 0)
 			return;
 		
 		var l = w.length.toString() + '_word';
 		if(Constants.wordBank[l] && Constants.wordBank[l].indexOf(w) >= 0)
 		{
-			found.push(w);
+			score.found.push(w);
 			score.words += 1;
 			score.letters += w.length;
 		}
@@ -206,24 +205,25 @@ Solution.prototype.getDna = function() {
 }
 
 Solution.prototype.mutate = function(oddsOfRandomLetter) {
-	var movesFrom = [];
-	var movesTo = [];
+	var sentence = ['Set Letters: '];
+	
 	while(Math.random() <= oddsOfRandomLetter) {
 		var abc = this.getUnusedLetters();
 		this.shuffle(abc);
 		var match = this.getRandomMatch();
 		
 		match.letter = abc[0];
-		movesFrom.push(match.code);
-		movesTo.push(match.letter);
+		sentence.push(match.code);
+		sentence.push('=>');
+		sentence.push(match.letter);
+		sentence.push(', ');
 	}
 	
-	if(movesFrom.length == 0)
+	if(sentence.length == 1)
 		return;
 
-	var out = ["Set Letters: ", movesFrom.join(', '), "=>", movesTo.join(', ')]
-	this.history.push(out.join(''));
-	//this.history.push(["Set Letters: ", match.letter, "=>", abc[0]].join(''));
+	sentence.pop();
+	this.history.push(sentence.join(''));
 };
 
 Solution.prototype.wordHunt = function() {

@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>DECRYPT</title>
+    <title>Genetic Algorithm</title>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/es6-shim/0.34.2/es6-shim.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 	<script src="http://code.jquery.com/ui/1.12.0/jquery-ui.min.js" integrity="sha256-eGE6blurk5sHj+rmkfsGYeKyZx3M4bG+ZlFyA7Kns7E=" crossorigin="anonymous"></script>
@@ -28,6 +28,14 @@
 			window.scrollTo(0,0);
 	};
 	</script>
+	<style>
+	code > mark {
+		color: inherit;
+		background-color: initial;
+		text-decoration: underline;
+		padding: 0;
+	}
+	</style>
   </head>
   <body>
   	<div class="alert alert-danger collapse" id="log-box">
@@ -46,11 +54,10 @@
 	<script src="word.js"></script>
 	<script src="solution.js"></script>
 	<script src="constants.js"></script>
-	<script src="10k_v2.js"></script>
-	<script src="scripts.js"></script>
+	<script src="10k_words.js"></script>
+	<script src="controller.js"></script>
 	<script src="jquery.canvasjs.min.js"></script>
-	<!--<script src="renderer.js"></script>-->
-	<!--<script src="http://d3js.org/d3.v3.min.js"></script>-->
+	<script src="jquery.mark.js"></script>
 
     <script>
 		function log(obj, cls, handler, args) {
@@ -83,8 +90,6 @@
 							e.preventDefault();
 							showSolution(s);
 						})
-						//.attr('data-g', s.g)
-						//.data('generation', s.g)
 						.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
 				))
 				
@@ -176,20 +181,12 @@
 			return solution;
 		}
 		
-		function logHandler(solution, $li) {
-			var s = JSON.parse(JSON.stringify(solution));
-			$li.find('pre').prepend(
-				$('<a href="#"></a>')
-					.click(function(e) {
-						e.preventDefault();
-						showSolution(s);
-						window.scroll(0, 0);
-					})
-					.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
-				);
-		}
 		function showSolution(solution) {
+			$('#out').empty();
 			$('#out').text(solution.score.decrypted).show();
+			
+			$('#out').markRegExp(new RegExp('\\b(' + solution.score.found.join('|') + ')\\b', 'gim'));
+			
 			$('#title').show();
 			$("#history").text(solution.history.join('\n')).show();
 		}
@@ -198,15 +195,12 @@
 			
 			var cde = old[Math.floor(Math.random() * old.length)];
 			
-			//$('#code').text(cde);
 			$('#encrypted').val(cde);
 
-			var flow = new Flow({
+			var controller = new Controller({
 				code: null,
 				solutions: [],
 				onCycleBegins: function(state) { 
-					//log("Generation: " + state.generation.toString(), "primary");
-					
 					status("Generation: " + state.generation.toString());
 				},
 				onCycleEnds: function(state) { 
@@ -218,9 +212,7 @@
 					
 					$('#stats-letters').text(state.best.score.letters + ' / ' + state.best.code.letterCount);
 					
-					//$('#plog').find("a[data-generation='" + state.generation.toString() + "']").first().click();
-					//console.log(state);
-					showSolution(state.ancestors[0]);
+					showSolution(state.best);
 
 					if(state.generation > 1) {
 						$('#chartContainer').show();
@@ -271,28 +263,19 @@
 						log("All ancestors were less fit than their parent :(", "warning")
 				},
 				onStepEnds2: function(newAncestors, state) {
-					/*for(var i=0;i<10;i++) {
-						if(state.ancestors[i])
-							logSolution(state.ancestors[i], state.generation);
-					}*/
+					
 				},
-				onVictory: function(state, best) {
-					log(best.length.toString() + " valid solutions discovered", "success");
-					best.forEach(function(x) {
-						log(x.score.decrypted, "primary", logHandler, x);
-						//$('#plog').find("li").last().find('a').click();
-						log(x.history);
-						log(state.mutations.toString() + " mutations processed");
+				onVictory: function(state) {
+					log("Valid solutions discovered", "success");
+					showSolution(state.best);
+					status(false);
 
-						status(false);
-					});
 				},
 				onComplete: function(state) {
-					//$('#plog').find("a").last().click();
-
 					log(state.maxGeneration.toString() + " Generations Complete", "success");
 					log(state.mutations.toString() + " mutations processed");
 					status(false);
+					showSolution(state.best);
 					if(state.generation < 3) {
 						$("#button-gen-20").fadeIn(400, function() { });
 					}
@@ -346,8 +329,7 @@
 				}
 				
 				solutions.sort(function(a,b) { return b.score.words - a.score.words; });
-				//var last = solutions[0].score;
-				//console.log(solutions[0]);
+
 				state = {
 					generation: 0,
 					maxGeneration: 0,
@@ -356,7 +338,6 @@
 					best: solutions[0],
 					mutations: 1,
 				};
-				//console.log(state);
 			}
 			
 			$("#button-generate").click(function(e) {
@@ -372,7 +353,7 @@
 					state.maxGeneration += 20;
 
 				$(this).fadeOut(400, function() { });
-				flow.beginCycle(state);
+				controller.beginCycle(state);
 			});
 			
 			$("#continue").click(function(e) {
@@ -380,7 +361,7 @@
 				var state = $(this).data('state');
 				state.maxGeneration += 20;
 				
-				flow.beginCycle(state);
+				controller.beginCycle(state);
 			});
 
 			$('#form').submit(function(e) {
@@ -388,7 +369,6 @@
 					return false;
 
 				var code = new Code($('#encrypted').val().trim().toUpperCase());
-				//var code = new Code( $('#code').text());
 
 				$("#code").text(code.code);
 				$("#code").data('code', code);
@@ -396,8 +376,6 @@
 				
 				
 				$("#solve").show();
-				//var code = new Code( $('#code').text());
-				//$("#code").text(code.code);
 				
 				$('#form').fadeOut(400, function() {
 					$('#stage').fadeIn(400);
@@ -416,7 +394,7 @@
 			<div class="form-group">
 				<label for="encrypted">Encrypted Message</label>
 				<input type="text" class="form-control input-lg" placeholder="Write the encrypted message here" id="encrypted" autocomplete="off" />
-				<input type="submit" value="Solve" class="btn btn-primary btn-lg btn-block submit" />
+				<input type="submit" value="Begin Solving" class="btn btn-primary btn-lg btn-block submit" />
 			</div>
 		</form>
 
@@ -455,7 +433,7 @@
 					</tr>
 				</table>
 				<h3><code id="out" class="collapse"></code></h3>
-				<div id="chartContainer" style="height: 200px; width: 100%;" class="collapse"></div>
+				<div id="chartContainer" style="height: 150px; width: 100%;" class="collapse"></div>
 				<pre id="history" class="collapse"></pre>
 			</div>
 
