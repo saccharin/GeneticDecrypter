@@ -1,11 +1,5 @@
 //flow.js
 
-// Potential Change: imitate life cycle:
-//	Spring: survivors emerge
-//	Summer: reproduce
-//	Fall: get scores of all children
-//	Winter: cull the weak
-
 var Flow = function(settings) {
 	var DEFAULTS = {
 		code: null,
@@ -24,7 +18,8 @@ var Flow = function(settings) {
 		alphabet: Constants.alphabet,
 		numberOfMates: 50,
 		numberOfChildren: 100,
-		timeout: 1
+		timeout: 1,
+		maxHistoryLength: 3
 	};
 
 	this.settings = $.extend({}, DEFAULTS, settings);
@@ -52,6 +47,10 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 	var ancestor = state.ancestors[index];
 	
 	var ancestorSubset = [];
+
+	state.ancestors.forEach(function(a) {
+		a.clearHistory(self.settings.maxHistoryLength);
+	});
 	
 	// ~15% of the ancestors are the best performing, 
 	// the next ~20% are randomly generated
@@ -86,7 +85,7 @@ Flow.prototype.beginStep = function(newAncestors, index, state)
 		state.mutations++;
 	});
 	
-	children = children.filter(function(c) { return c.score.words >= state.last.words - self.settings.mustBeatThisSpread; });
+	children = children.filter(function(c) { return c.score.words >= state.best.score.words - self.settings.mustBeatThisSpread; });
 	
 	children.forEach(function(c) {
 		newAncestors.push(c);
@@ -116,11 +115,12 @@ Flow.prototype.endStep = function(newAncestors, state)
 		return this.endCycle(state);
 	}
 	
-	newAncestors.filter(function(c) { return c.score.words >= state.last.words - self.settings.mustBeatThisSpread; });
+	newAncestors.filter(function(c) { return c.score.words >= state.best.score.words - self.settings.mustBeatThisSpread; });
 	
 	// the top 1/4 of the group gets a spot
 	newAncestors.sort(function(a,b) { return b.score.letters - a.score.letters; });
 	
+	delete state.ancestors;
 	state.ancestors = newAncestors.splice(0, Math.ceil(self.settings.maximumPopulation  * self.settings.percentOfChildrenThatBypassSelection));
 	
 	// the remaining 3/4 is chosen at random with a bias towards better performing children
@@ -132,24 +132,12 @@ Flow.prototype.endStep = function(newAncestors, state)
 			state.ancestors.push(newAncestors.splice(x, 1)[0]);
 	}
 	
-	// remove duplicates
-	/*
-	for(var i=state.ancestors.length - 1, a1; a1=state.ancestors[i]; i--) {
-		for(var j=i-1, a2; a2=state.ancestors[j];j--) {
-			if(a2.equals(a1)) {
-				state.ancestors.splice(i, 1);
-				break;
-			}
-		}
-	}
-	*/
-	
-	//console.log(state.ancestors);
 	if(state.historicalScores == null)
 		state.historicalScores = [];
 	
 	state.ancestors.sort(function(a,b) { return b.score.letters - a.score.letters; });
-	state.last = state.ancestors[0].score;
+	//state.last = state.ancestors[0].score;
+	state.best = state.ancestors[0];
 	
 	state.historicalScores.push({ 
 		generation: state.generation, 
@@ -162,6 +150,8 @@ Flow.prototype.endStep = function(newAncestors, state)
 	this.settings.onStepEnds2(newAncestors, state);
 
 	this.endCycle(state);
+
+	delete newAncestors;
 };
 
 Flow.prototype.endCycle = function(state)

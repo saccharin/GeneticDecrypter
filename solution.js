@@ -41,11 +41,12 @@ Solution.prototype.setWord = function(codedWord, replacementWord) {
 	for(var i=0; i<codedLetters.length; i++) 
 		this.setLetter(codedLetters[i], replacementLetters[i], true);
 	
-	this.history.push("Set Word: " + codedWord.word + "=>" + replacementWord.word);
+	this.history.push(["Set Word: ", codedWord.word, "=>", replacementWord.word].join(''));
 };
 
-Solution.prototype.kill = function() {
-	this.history = [];
+Solution.prototype.clearHistory = function(leave) {
+	while(this.history.length > leave)
+		this.history.shift();
 };
 
 Solution.prototype.setLetter = function(codedLetter, replacementLetter, ignoreHistory) {
@@ -58,7 +59,7 @@ Solution.prototype.setLetter = function(codedLetter, replacementLetter, ignoreHi
 		letter: replacementLetter
 	});
 	if(ignoreHistory !== true)
-		this.history.push("Set Letter: " + codedLetter + "=>" + replacementLetter);
+		this.history.push(["Set Letter: ", codedLetter, "=>", replacementLetter].join(''));
 };
 
 Solution.prototype.calculateScore = function(decrypted) {
@@ -180,14 +181,22 @@ Solution.prototype.mate = function(partner)
 	
 	solution.fill();
 	
-	function getS(s) {
+	/*function getS(s) {
 		if(s.score && s.score.decrypted)
 			return s.score.decrypted;
 		
 		return s.solve().decrypted;
-	}
+	}*/
 	
-	solution.history.push("Mated " + this.getDna() + " (" + getS(this) + ") with " + partner.getDna() + " (" + getS(partner) + ")");
+	solution.history.push(["Mated ", 
+		this.getDna(), 
+		//" (", getS(this), 
+		//	") with ", 
+		" with ",
+		partner.getDna(), 
+		//" (", getS(partner), 
+		//")"
+	].join(''));
 	
 	return solution;
 };
@@ -197,14 +206,24 @@ Solution.prototype.getDna = function() {
 }
 
 Solution.prototype.mutate = function(oddsOfRandomLetter) {
+	var movesFrom = [];
+	var movesTo = [];
 	while(Math.random() <= oddsOfRandomLetter) {
 		var abc = this.getUnusedLetters();
 		this.shuffle(abc);
 		var match = this.getRandomMatch();
 		
-		this.history.push("Set Letter: " + match.letter + "=>" + abc[0]);
 		match.letter = abc[0];
+		movesFrom.push(match.code);
+		movesTo.push(match.letter);
 	}
+	
+	if(movesFrom.length == 0)
+		return;
+
+	var out = ["Set Letters: ", movesFrom.join(', '), "=>", movesTo.join(', ')]
+	this.history.push(out.join(''));
+	//this.history.push(["Set Letters: ", match.letter, "=>", abc[0]].join(''));
 };
 
 Solution.prototype.wordHunt = function() {

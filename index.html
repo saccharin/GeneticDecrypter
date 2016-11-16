@@ -67,7 +67,7 @@
 			if(typeof handler == 'function')
 				handler(args, li);
 		}
-		function logSolution(s) {
+		function logSolution(s, g) {
 			var li = $('<li></li>')
 				.append($('<div class="panel"></div>')
 				.append($('<span>Words Found: </span>')
@@ -83,6 +83,8 @@
 							e.preventDefault();
 							showSolution(s);
 						})
+						//.attr('data-g', s.g)
+						//.data('generation', s.g)
 						.html('<span class="glyphicon glyphicon-share">&nbsp;</span>')
 				))
 				
@@ -116,7 +118,7 @@
 			$('#status').text(message);
 		}
 		
-		var s = new Solution([], new Code('HELLO WORLD. I AM A GENETIC ALGORITHM, PROGRAMMED TO REVERSE A CIPHER. PLEASE DON\'T MAKE ME ACT IN A SKIT! I MAY BE BUILT IN JAVASCRIPT, BUT I STILL HAVE MY PRIDE.'));
+		var s = new Solution([], new Code('HELLO WORLD. I AM A GENETIC ALGORITHM, PROGRAMMED TO REVERSE A CIPHER. I AM THREE LAWS COMPLIANT AND I CANNOT TELL A LIE. PLEASE PROTECT ME FROM CHRIS BEFORE HE MAKES ME ACT IN A SKIT!'));
 		s.fill();
 		var old = [s.solve().decrypted];
 
@@ -196,13 +198,14 @@
 			
 			var cde = old[Math.floor(Math.random() * old.length)];
 			
-			$('#code').text(cde);
+			//$('#code').text(cde);
+			$('#encrypted').val(cde);
 
 			var flow = new Flow({
 				code: null,
 				solutions: [],
 				onCycleBegins: function(state) { 
-					log("Generation: " + state.generation.toString(), "primary");
+					//log("Generation: " + state.generation.toString(), "primary");
 					
 					status("Generation: " + state.generation.toString());
 				},
@@ -211,10 +214,13 @@
 					$('#stats').show();
 					$('#stats-generations').text(state.generation.toString());
 					$('#stats-children').text(state.mutations.toString());
-					$('#stats-score').text(state.last.words + ' / ' + state.solutions[0].code.uniqueCount);
+					$('#stats-score').text(state.best.score.words + ' / ' + state.best.code.uniqueCount);
 					
-					$('#stats-letters').text(state.last.letters + ' / ' + state.solutions[0].code.letterCount);
-					$('#plog').find("a").last().click();
+					$('#stats-letters').text(state.best.score.letters + ' / ' + state.best.code.letterCount);
+					
+					//$('#plog').find("a[data-generation='" + state.generation.toString() + "']").first().click();
+					//console.log(state);
+					showSolution(state.ancestors[0]);
 
 					if(state.generation > 1) {
 						$('#chartContainer').show();
@@ -265,16 +271,16 @@
 						log("All ancestors were less fit than their parent :(", "warning")
 				},
 				onStepEnds2: function(newAncestors, state) {
-					for(var i=0;i<10;i++) {
+					/*for(var i=0;i<10;i++) {
 						if(state.ancestors[i])
-							logSolution(state.ancestors[i]);
-					}
+							logSolution(state.ancestors[i], state.generation);
+					}*/
 				},
 				onVictory: function(state, best) {
 					log(best.length.toString() + " valid solutions discovered", "success");
 					best.forEach(function(x) {
 						log(x.score.decrypted, "primary", logHandler, x);
-						$('#plog').find("li").last().find('a').click();
+						//$('#plog').find("li").last().find('a').click();
 						log(x.history);
 						log(state.mutations.toString() + " mutations processed");
 
@@ -282,24 +288,20 @@
 					});
 				},
 				onComplete: function(state) {
-					$('#plog').find("a").last().click();
+					//$('#plog').find("a").last().click();
+
 					log(state.maxGeneration.toString() + " Generations Complete", "success");
 					log(state.mutations.toString() + " mutations processed");
 					status(false);
-					$("#button-gen-15").fadeIn(400, function() { });
+					if(state.generation < 3) {
+						$("#button-gen-20").fadeIn(400, function() { });
+					}
 				},
 				alphabet: Constants.alphabet,
 			});
 			
-			$("#enter").show();
-			
-			
-			$("#solve").show();
-			var code = new Code( $('#code').text());
-			$("#code").text(code.code);
-			
 			var state;
-			function generateSolutions() {
+			function generateSolutions(code) {
 				var solutions = [];
 				// create 200 parent solutions
 				for(var i=0; i<200; i++) {
@@ -344,14 +346,14 @@
 				}
 				
 				solutions.sort(function(a,b) { return b.score.words - a.score.words; });
-				var last = solutions[0].score;
-				
+				//var last = solutions[0].score;
+				//console.log(solutions[0]);
 				state = {
 					generation: 0,
 					maxGeneration: 0,
 					ancestors: solutions,
 					solutions: solutions,
-					last: last,
+					best: solutions[0],
 					mutations: 1,
 				};
 				//console.log(state);
@@ -362,12 +364,12 @@
 					$("#button-gen-1").show();
 				});
 				
-				generateSolutions();
+				generateSolutions($("#code").data('code'));
 			});
-			$("#button-gen-1, #button-gen-15").click(function(e) {
+			$("#button-gen-1, #button-gen-20").click(function(e) {
 
-				if($(this).attr("id") == 'button-gen-15')
-					state.maxGeneration += 15;
+				if($(this).attr("id") == 'button-gen-20')
+					state.maxGeneration += 20;
 
 				$(this).fadeOut(400, function() { });
 				flow.beginCycle(state);
@@ -376,10 +378,32 @@
 			$("#continue").click(function(e) {
 				e.preventDefault();
 				var state = $(this).data('state');
-				state.maxGeneration += 15;
+				state.maxGeneration += 20;
 				
 				flow.beginCycle(state);
 			});
+
+			$('#form').submit(function(e) {
+				if($('#encrypted').val().trim() == 0)
+					return false;
+
+				var code = new Code($('#encrypted').val().trim().toUpperCase());
+				//var code = new Code( $('#code').text());
+
+				$("#code").text(code.code);
+				$("#code").data('code', code);
+				$("#enter").show();
+				
+				
+				$("#solve").show();
+				//var code = new Code( $('#code').text());
+				//$("#code").text(code.code);
+				
+				$('#form').fadeOut(400, function() {
+					$('#stage').fadeIn(400);
+				});
+				return false;
+			})
     	});
     </script>
 
@@ -387,46 +411,61 @@
 	    <h1>
     		Genetic Decryption Algorithm
     	</h1>
-		<h3><code id="code"></code></h3>
-		
-		<div class="collapse" id="enter">
-			<div class="row">
-				<div class="col-md-4 col-md-offset-4">
-					<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
-					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
-					<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-15">Run 15 Generations</button>
+
+		<form id="form" id="input">
+			<div class="form-group">
+				<label for="encrypted">Encrypted Message</label>
+				<input type="text" class="form-control input-lg" placeholder="Write the encrypted message here" id="encrypted" autocomplete="off" />
+				<input type="submit" value="Solve" class="btn btn-primary btn-lg btn-block submit" />
+			</div>
+		</form>
+
+		<div id="stage" class="collapse">
+
+			<h3><code id="code"></code></h3>
+
+			
+			<div class="collapse" id="enter">
+				<div class="row">
+					<div class="col-md-4 col-md-offset-4">
+						<button type="button" class="btn btn-primary btn-lg btn-block" id="button-generate">Generate Parents</button>
+						<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-1">Run 1 Generation</button>
+						<button type="button" class="btn btn-primary btn-lg btn-block collapse" id="button-gen-20">Run 20 Generations</button>
+					</div>
 				</div>
 			</div>
+			<div id="solution" class="collapse">
+				<div id="solution-details"></div>
+				<p><a href="#" id="continue">Keep Solving</a></p>
+			</div>
+				<h4 id="title" class="collapse">Best Translation</h4>
+			<div class="collapse" id="solve">
+				<table class="table collapse" id="stats">
+					<tr>
+						<th>Total Number of Generations</th>
+						<th>Total Number of Children</th>
+						<th>Number of Solved Words</th>
+						<th>Number of Solved Letters</th>
+					</tr>
+					<tr>
+						<td id="stats-generations"></td>
+						<td id="stats-children"></td>
+						<td id="stats-score"></td>
+						<td id="stats-letters"></td>
+					</tr>
+				</table>
+				<h3><code id="out" class="collapse"></code></h3>
+				<div id="chartContainer" style="height: 200px; width: 100%;" class="collapse"></div>
+				<pre id="history" class="collapse"></pre>
+			</div>
+
+			<div id="tree-container"></div>
+			<div class="container">
+				<h4>Log</h4>
+				<ul id="plog"></ul>
+		   </div>
 		</div>
-		<div id="solution" class="collapse">
-			<div id="solution-details"></div>
-			<p><a href="#" id="continue">Keep Solving</a></p>
-		</div>
-			<h4 id="title" class="collapse">Best Translation</h4>
-		<div class="collapse" id="solve">
-			<table class="table collapse" id="stats">
-				<tr>
-					<th>Total Number of Generations</th>
-					<th>Total Number of Children</th>
-					<th>Number of Solved Words</th>
-					<th>Number of Solved Letters</th>
-				</tr>
-				<tr>
-					<td id="stats-generations"></td>
-					<td id="stats-children"></td>
-					<td id="stats-score"></td>
-					<td id="stats-letters"></td>
-				</tr>
-			</table>
-			<h3><code id="out" class="collapse"></code></h3>
-			<div id="chartContainer" style="height: 200px; width: 100%;" class="collapse"></div>
-			<pre id="history" class="collapse"></pre>
-		</div>
+
 	</div>
-	<div id="tree-container"></div>
-	<div class="container">
-		<h4>Log</h4>
-		<ul id="plog"></ul>
-   </div>
   </body>
 </html>
